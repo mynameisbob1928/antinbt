@@ -1,0 +1,10 @@
+name: AntiNbt
+version: '0.0.1'
+main: me.bob.antinbt.AntiNbt
+api-version: '1.21.4'
+author: mynameisbob1928
+description: Anti nbt thing for 50xcreative so that the server doesn't die
+permissions:
+  antinbt.bypass:
+    description: "AntiNbt bypass"
+    default: op
