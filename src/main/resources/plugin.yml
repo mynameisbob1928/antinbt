@@ -1,5 +1,5 @@
 name: AntiNbt
-version: '0.0.1'
+version: '0.1.0'
 main: me.bob.antinbt.AntiNbt
 api-version: '1.21.4'
 author: mynameisbob1928
