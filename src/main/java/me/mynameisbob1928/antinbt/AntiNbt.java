@@ -11,12 +11,12 @@ public class AntiNbt extends JavaPlugin {
 		instance = this;
 
 		Bukkit.getPluginManager().registerEvents(new InventoryEvents(), instance);
-		info("Chat I'm back");
+		info("Antinbt enabled");
 	}
 
 	@Override
 	public void onDisable() {
-		warn(":gone:");
+		warn("Antinbt disabled");
 	}
 
 	/**
