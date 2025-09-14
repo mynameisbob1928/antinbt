@@ -1,4 +1,5 @@
 .vscode
-target
+.gradle
+build
 testServer
 compile.bat

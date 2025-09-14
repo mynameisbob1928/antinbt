@@ -1,6 +1,4 @@
-package me.bob.antinbt;
-
-import me.bob.antinbt.listeners.*;
+package me.mynameisbob1928.antinbt;
 
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;

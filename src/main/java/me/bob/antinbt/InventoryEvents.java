@@ -1,6 +1,5 @@
-package me.bob.antinbt.listeners;
+package me.mynameisbob1928.antinbt;
 
-import me.bob.antinbt.AntiNbt;
 import java.util.Map;
 
 import org.bukkit.inventory.Inventory;
