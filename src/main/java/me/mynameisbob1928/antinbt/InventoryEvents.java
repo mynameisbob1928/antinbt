@@ -202,7 +202,4 @@ public class InventoryEvents implements Listener {
 
 		return !item.matchesWithoutData(defaultItem, nbtToIgnore, true);
 	}
-
-		return false;
-	}
 }
