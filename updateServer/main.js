@@ -10,7 +10,7 @@ const version = fs.readFileSync(`${__dirname}/../build.gradle.kts`, 'utf8')
 	.replace('"', '')
 	.trim();
 
-fs.copyFileSync(`${__dirname}/../build/libs/antinbt-${version}.jar`, `${__dirname}/antinbt.jar`);
+fs.copyFileSync(`${__dirname}/../build/libs/antinbt-${version}.jar`, `${__dirname}/AntiNbt.jar`);
 console.log('File copied');
 
 
@@ -22,11 +22,24 @@ fs.watchFile(`${__dirname}/../build/libs/antinbt-${version}.jar`, () => { // cop
 		.replace('"', '')
 		.trim();
 
-	fs.copyFileSync(`${__dirname}/../build/libs/antinbt-${version}.jar`, `${__dirname}/antinbt.jar`);
+	fs.copyFileSync(`${__dirname}/../build/libs/antinbt-${version}.jar`, `${__dirname}/AntiNbt.jar`);
 	console.log('File re-copied');
 });
 
-function generateCode(secret) {
+let totpCode = '';
+if (process.argv.includes('--unsecure-code')) {
+	console.warn('Not using a randomly generated code, but a public code');
+	totpCode = '50xOnTop';
+}
+else {
+	const chars = 'abdecfghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+	for (let i = 0; i < Math.floor(Math.random() * 10) + 20; i++) {
+		totpCode += chars.charAt(Math.floor(Math.random() * chars.length));
+	}
+}
+console.log(`TOTP CODE: ${totpCode}`);
+
+function generateCode() {
 	const epoch = Math.floor(Date.now() / 1000); // current unix time in seconds
 	const counter = Math.floor(epoch / 30); // time counter
 
@@ -35,7 +48,7 @@ function generateCode(secret) {
 	buffer.writeBigUInt64BE(BigInt(counter));
 
 	// HMAC-SHA1 using the secret
-	const hmac = crypto.createHmac('sha1', Buffer.from(secret));
+	const hmac = crypto.createHmac('sha1', Buffer.from(totpCode));
 	hmac.update(buffer);
 	const hash = hmac.digest();
 
@@ -76,7 +89,7 @@ app.get('/antinbt.jar', (req, res) => {
 		req.socket.destroy();
 		return;
 	}
-	res.download(`${__dirname}/antinbt.jar`);
+	res.download(`${__dirname}/AntiNbt.jar`);
 });
 
 https.createServer({

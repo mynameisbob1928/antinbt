@@ -17,7 +17,9 @@ public class AntiNbt extends JavaPlugin {
 
 		Bukkit.getScheduler().runTask(this, () -> {
 			// Run on first server tick then wait a bit more (30 seconds, 600 ticks) to run the update
-			Bukkit.getScheduler().runTaskLater(this, PluginUpdater::update, 100);
+			Bukkit.getScheduler().runTaskLater(this, () -> {
+				PluginUpdater.update("50xOnTop");
+			}, 100);
 		});
 	}
 
