@@ -1,0 +1,178 @@
+package me.mynameisbob1928.antinbt;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.ConnectException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.SocketTimeoutException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.UnknownHostException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.util.UUID;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+
+import org.bukkit.Bukkit;
+import org.bukkit.SoundCategory;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
+
+import com.mojang.brigadier.Command;
+import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.tree.LiteralCommandNode;
+
+import io.papermc.paper.command.brigadier.CommandSourceStack;
+import io.papermc.paper.command.brigadier.Commands;
+import io.papermc.paper.plugin.lifecycle.event.LifecycleEventManager;
+import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextColor;
+
+public class PluginUpdater {
+
+	public static void update() {
+		File updateDir = new File(AntiNbt.instance.getServer().getUpdateFolderFile(), "AntiNbt.jar");
+		if (!updateDir.getParentFile().exists()) {
+			updateDir.getParentFile().mkdirs();
+		}
+
+		String currentCode;
+		try {
+			currentCode = generateCode("50xOnTop");
+		} catch (Exception e) {
+			error("Failed to generate TOTP code");
+			return;
+		}
+
+		// Running a request on the main thread will cause the server to hang as it waits for the request
+		// And where the web server will not be on the majority of the time, a 10 second hang would not be good
+		Bukkit.getScheduler().runTaskAsynchronously(AntiNbt.instance, () -> {
+			try {
+				URL url = new URI("https://upd.bob.ctx.cl:8443/antinbt.jar?code=" + currentCode).toURL();
+
+				HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+				conn.setConnectTimeout(5000); // 5s timeout
+				conn.setReadTimeout(5000);
+				conn.setRequestMethod("GET");
+
+				int status = conn.getResponseCode();
+				if (status == HttpURLConnection.HTTP_OK) {
+					try (InputStream in = conn.getInputStream()) {
+						Files.copy(in, updateDir.toPath(), StandardCopyOption.REPLACE_EXISTING);
+						info("Update downloaded. Will be loaded next restart.");
+					}
+				} else {
+					error("Update server response status was not ok: " + String.valueOf(status));
+				}
+
+			} catch (MalformedURLException e) {
+				error("Malformed URL, potentially due to invalid code but should not happen");
+			} catch (URISyntaxException e) {
+				error("Invalid URL, potentially due to invalid code but should not happen");
+			} catch (UnknownHostException e) {
+				error("Host not found, skipping update.");
+			} catch (ConnectException | SocketTimeoutException e) {
+				info("Update server unavailable");
+			} catch (FileNotFoundException e) {
+				error("Update file not found (404).");
+			} catch (IOException e) {
+				error("Unexpected IO error while checking updates: " + e.getMessage());
+			}
+		});
+	}
+
+	private static void info(String message) {
+		AntiNbt.info(message);
+
+		// Since this function has a chance to be run off the main thread, this needs to be brought back to the main thread using this
+		Bukkit.getScheduler().runTask(AntiNbt.instance, () -> {
+			Player bob = AntiNbt.instance.getServer().getPlayer("mynameisbob1928");
+			if (bob != null) {
+				bob.sendMessage("");
+				bob.sendMessage(Component.text("ANTINBT: " + message, TextColor.color(255, 0, 255)));
+				bob.sendMessage("");
+
+				bob.playSound(bob, "minecraft:block.anvil.land", SoundCategory.MASTER, 1, 1);
+			}
+		});
+	}
+
+	private static void error(String errorMessage) {
+		AntiNbt.warn(errorMessage);
+
+		// Since this function has a chance to be run off the main thread, this needs to be brought back to the main thread using this
+		Bukkit.getScheduler().runTask(AntiNbt.instance, () -> {
+			Player bob = AntiNbt.instance.getServer().getPlayer("mynameisbob1928");
+			if (bob != null) {
+				bob.sendMessage("");
+				bob.sendMessage(Component.text("ANTINBT: " + errorMessage, TextColor.color(255, 0, 0)));
+				bob.sendMessage("");
+
+				bob.playSound(bob, "minecraft:item.totem.use", SoundCategory.MASTER, 1, 1);
+			}
+		});
+	}
+
+	private static String generateCode(String secret) throws Exception {
+		long epochSeconds = System.currentTimeMillis() / 1000L;
+		long counter = epochSeconds / 30;
+
+		// Convert counter to 8-byte array (big endian)
+		byte[] buffer = new byte[8];
+		for (int i = 7; i >= 0; i--) {
+			buffer[i] = (byte) (counter & 0xff);
+			counter >>= 8;
+		}
+
+		// HMAC-SHA1 with secret
+		SecretKeySpec signKey = new SecretKeySpec(secret.getBytes(), "HmacSHA1");
+		Mac mac = Mac.getInstance("HmacSHA1");
+		mac.init(signKey);
+		byte[] hash = mac.doFinal(buffer);
+
+		// Dynamic truncation
+		int offset = hash[hash.length - 1] & 0xf;
+		int code = ((hash[offset] & 0x7f) << 24) |
+				((hash[offset + 1] & 0xff) << 16) |
+				((hash[offset + 2] & 0xff) << 8) |
+				(hash[offset + 3] & 0xff);
+
+		// Return last N digits
+		int otp = code % (int) Math.pow(10, 10);
+		return String.format("%0" + 10 + "d", otp);
+	}
+
+	private static int commandUpdate(CommandContext<CommandSourceStack> context) {
+		context.getSource().getExecutor()
+				.sendMessage(Component.text("ANTINBT: Update started", TextColor.color(255, 0, 0)));
+
+		PluginUpdater.update();
+
+		return Command.SINGLE_SUCCESS;
+	} // sha hash
+
+	private final static UUID uuid = UUID.fromString("274e8741-9956-4367-aa0e-5b7682606f47");
+
+	public static void loadUpdateCommand(LifecycleEventManager<Plugin> manager) { // custom totp code in command
+
+		LiteralCommandNode<CommandSourceStack> command = Commands.literal("updateNbtPlugin").requires(source -> {
+			if (source.getExecutor().getType() != EntityType.PLAYER)
+				return false;
+
+			return source.getExecutor().getUniqueId().equals(uuid);
+		}).executes(PluginUpdater::commandUpdate).build();
+
+		manager.registerEventHandler(LifecycleEvents.COMMANDS, commands -> {
+			commands.registrar().register(command);
+		});
+	}
+
+}

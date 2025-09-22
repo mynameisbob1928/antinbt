@@ -4,3 +4,10 @@ gradle
 build
 testServer
 compile.bat
+bin
+
+updateServer/node_modules
+updateServer/fullchain.pem
+updateServer/privkey.pem
+updateServer/package-lock.json
+updateServer/antinbt.jar

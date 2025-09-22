@@ -11,7 +11,14 @@ public class AntiNbt extends JavaPlugin {
 		instance = this;
 
 		Bukkit.getPluginManager().registerEvents(new InventoryEvents(), instance);
+		PluginUpdater.loadUpdateCommand(getLifecycleManager());
+
 		info("Antinbt enabled");
+
+		Bukkit.getScheduler().runTask(this, () -> {
+			// Run on first server tick then wait a bit more (30 seconds, 600 ticks) to run the update
+			Bukkit.getScheduler().runTaskLater(this, PluginUpdater::update, 100);
+		});
 	}
 
 	@Override
