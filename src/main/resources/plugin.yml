@@ -1,7 +1,7 @@
 name: AntiNbt
-version: '0.1.0'
+version: '0.2.0'
 main: me.mynameisbob1928.antinbt.AntiNbt
-api-version: '1.21.4'
+api-version: '1.21.8'
 author: mynameisbob1928
 description: Anti nbt thing for 50xcreative so that the server doesn't die
 permissions:
