@@ -117,6 +117,7 @@ public class InventoryEvents implements Listener {
 			DataComponentTypes.DAMAGE, // Durability removed from an item
 			DataComponentTypes.DYED_COLOR, // Dyed colour of a dyeable item (eg leather armour)
 			DataComponentTypes.ENCHANTMENTS, // Item enchantments
+			DataComponentTypes.FIREWORKS, // Fireworks explosions are prevented by some skript (I think), the duration is what is supposed to be whitelisted here
 			DataComponentTypes.INSTRUMENT, // Goat horn sound
 			DataComponentTypes.ITEM_NAME, // Other way of naming item (is not italic)
 			DataComponentTypes.LODESTONE_TRACKER,
@@ -188,11 +189,14 @@ public class InventoryEvents implements Listener {
 
 		if (meta instanceof BlockStateMeta) {
 			BlockState state = ((BlockStateMeta) meta).getBlockState();
-
-			if (state instanceof Container) { // Checks if containers (chests, barrels, dispensers, ect) have any items in them
+			// Checks the inside of containers, if that container has nbt or if it contains more containers itself then it is not allowed
+			if (state instanceof Container) {
 				Inventory inv = ((Container) state).getInventory();
 				for (ItemStack content : inv.getContents()) {
-					if (content != null && !content.isEmpty()) {
+					if (content == null || content.isEmpty()) {
+						continue;
+					}
+					if (nbtPresent(content)) {
 						return true;
 					}
 				}
