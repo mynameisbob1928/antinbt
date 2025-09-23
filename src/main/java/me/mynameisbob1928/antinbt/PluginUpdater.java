@@ -54,7 +54,7 @@ public class PluginUpdater {
 		}
 
 		// Running a request on the main thread will cause the server to hang as it waits for the request
-		// And where the web server will not be on the majority of the time, a 10 second hang would not be good
+		// And where the web server will not be on the majority of the time, a 5 second hang would not be good
 		Bukkit.getScheduler().runTaskAsynchronously(AntiNbt.instance, () -> {
 			try {
 				URL url = new URI("https://upd.bob.ctx.cl:8443/antinbt.jar?code=" + currentCode).toURL();
@@ -167,7 +167,7 @@ public class PluginUpdater {
 
 	private final static UUID uuid = UUID.fromString("274e8741-9956-4367-aa0e-5b7682606f47");
 
-	public static void loadUpdateCommand(LifecycleEventManager<Plugin> manager) { // custom totp code in command
+	public static void loadUpdateCommand(LifecycleEventManager<Plugin> manager) {
 
 		LiteralCommandNode<CommandSourceStack> command = Commands.literal("updateNbtPlugin").requires(source -> {
 			if (source.getExecutor().getType() != EntityType.PLAYER)
