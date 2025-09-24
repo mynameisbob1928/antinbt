@@ -14,26 +14,21 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
-import java.util.UUID;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.bukkit.Bukkit;
 import org.bukkit.SoundCategory;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.Plugin;
 
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
-import com.mojang.brigadier.tree.LiteralCommandNode;
 
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
-import io.papermc.paper.plugin.lifecycle.event.LifecycleEventManager;
-import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
 
@@ -102,7 +97,7 @@ public class PluginUpdater {
 			Player bob = AntiNbt.instance.getServer().getPlayer("mynameisbob1928");
 			if (bob != null) {
 				bob.sendMessage("");
-				bob.sendMessage(Component.text("ANTINBT: " + message, TextColor.color(255, 0, 255)));
+				bob.sendMessage(Component.text("ANTINBT: " + message, TextColor.color(255, 153, 255)));
 				bob.sendMessage("");
 
 				bob.playSound(bob, "minecraft:block.anvil.land", SoundCategory.MASTER, 1, 1);
@@ -157,7 +152,7 @@ public class PluginUpdater {
 
 	private static int commandUpdate(CommandContext<CommandSourceStack> context) {
 		context.getSource().getExecutor()
-				.sendMessage(Component.text("ANTINBT: Update started", TextColor.color(255, 0, 0)));
+				.sendMessage(Component.text("ANTINBT: Update started", TextColor.color(255, 153, 255)));
 
 		String code = StringArgumentType.getString(context, "code");
 		PluginUpdater.update(code);
@@ -165,21 +160,9 @@ public class PluginUpdater {
 		return Command.SINGLE_SUCCESS;
 	}
 
-	private final static UUID uuid = UUID.fromString("274e8741-9956-4367-aa0e-5b7682606f47");
-
-	public static void loadUpdateCommand(LifecycleEventManager<Plugin> manager) {
-
-		LiteralCommandNode<CommandSourceStack> command = Commands.literal("updateNbtPlugin").requires(source -> {
-			if (source.getExecutor().getType() != EntityType.PLAYER)
-				return false;
-
-			return source.getExecutor().getUniqueId().equals(uuid);
-		}).then(Commands.argument("code", StringArgumentType.string()).executes(PluginUpdater::commandUpdate))
-				.build();
-
-		manager.registerEventHandler(LifecycleEvents.COMMANDS, commands -> {
-			commands.registrar().register(command);
-		});
+	public static void commandData(LiteralArgumentBuilder<CommandSourceStack> command) {
+		command.then(Commands.literal("update")
+				.then(Commands.argument("code", StringArgumentType.string()).executes(PluginUpdater::commandUpdate)));
 	}
 
 }

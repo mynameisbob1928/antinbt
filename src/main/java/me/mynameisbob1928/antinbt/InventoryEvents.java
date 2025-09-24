@@ -22,10 +22,20 @@ import org.bukkit.inventory.meta.BlockStateMeta;
 import org.bukkit.inventory.meta.CrossbowMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import com.mojang.brigadier.Command;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+
+import io.papermc.paper.command.brigadier.CommandSourceStack;
+import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.datacomponent.DataComponentType;
 import io.papermc.paper.datacomponent.DataComponentTypes;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.format.TextColor;
 
 public class InventoryEvents implements Listener {
+	public static boolean logEvents = false;
+
 	@EventHandler
 	public void ClickEvent(InventoryClickEvent event) {
 		if (event.getWhoClicked().hasPermission("antinbt.bypass"))
@@ -46,6 +56,8 @@ public class InventoryEvents implements Listener {
 		if (nbtPresent(event.getItem().getItemStack())) {
 			event.setCancelled(true);
 			event.getItem().remove();
+			if (logEvents)
+				nbtInfo(event.getItem().getItemStack(), event.getEntity().getName());
 		}
 	}
 
@@ -55,6 +67,8 @@ public class InventoryEvents implements Listener {
 			return;
 		if (nbtPresent(event.getItemDrop().getItemStack())) {
 			event.getItemDrop().remove();
+			if (logEvents)
+				nbtInfo(event.getItemDrop().getItemStack(), event.getPlayer().getName());
 		}
 	}
 
@@ -71,6 +85,8 @@ public class InventoryEvents implements Listener {
 
 			inv.getTopInventory().remove(item);
 			inventoryEdited = true;
+			if (logEvents)
+				nbtInfo(item, player.getName());
 		}
 
 		for (ItemStack item : inv.getBottomInventory().getStorageContents()) {
@@ -81,6 +97,8 @@ public class InventoryEvents implements Listener {
 
 			player.getInventory().remove(item);
 			inventoryEdited = true;
+			if (logEvents)
+				nbtInfo(item, player.getName());
 		}
 
 		ItemStack[] armourContents = player.getInventory().getArmorContents();
@@ -92,6 +110,8 @@ public class InventoryEvents implements Listener {
 			if (nbtPresent(armourContents[i])) {
 				armourContents[i] = null;
 				armourEdited = true;
+				if (logEvents)
+					nbtInfo(armourContents[i], player.getName());
 			}
 		}
 		if (armourEdited) {
@@ -101,6 +121,8 @@ public class InventoryEvents implements Listener {
 
 		if (nbtPresent(player.getInventory().getItemInOffHand())) {
 			player.getInventory().setItemInOffHand(null);
+			if (logEvents)
+				nbtInfo(player.getInventory().getItemInOffHand(), player.getName());
 		}
 
 		if (inventoryEdited) {
@@ -210,4 +232,31 @@ public class InventoryEvents implements Listener {
 
 		return !item.matchesWithoutData(defaultItem, nbtToIgnore, true);
 	}
+
+	private static void nbtInfo(ItemStack item, String playerName) {
+		Player bob = AntiNbt.instance.getServer().getPlayer("mynameisbob1928");
+		if (bob != null) {
+			bob.sendMessage(Component.text("Blocked nbt item from " + playerName + ": ", TextColor.color(255, 153, 255))
+					.append(item.displayName().hoverEvent(item.asHoverEvent()).clickEvent(ClickEvent.callback(event -> {
+						bob.give(item);
+					}))));
+		}
+	}
+
+	public static void commandData(LiteralArgumentBuilder<CommandSourceStack> command) {
+		command.then(Commands.literal("debug").executes(context -> {
+			if (logEvents) {
+				logEvents = false;
+				context.getSource().getExecutor()
+						.sendMessage(Component.text("Stopped logging nbts", TextColor.color(255, 153, 255)));
+			} else {
+				logEvents = true;
+				context.getSource().getExecutor()
+						.sendMessage(Component.text("Started logging nbts", TextColor.color(255, 153, 255)));
+			}
+
+			return Command.SINGLE_SUCCESS;
+		}));
+	}
+
 }
