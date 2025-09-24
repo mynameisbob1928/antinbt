@@ -21,6 +21,7 @@ public class AntiNbt extends JavaPlugin {
 		instance = this;
 
 		Bukkit.getPluginManager().registerEvents(new InventoryEvents(), instance);
+		Bukkit.getPluginManager().registerEvents(new Others(), instance);
 		loadCommands();
 
 		info("Antinbt enabled");
@@ -63,6 +64,7 @@ public class AntiNbt extends JavaPlugin {
 
 			PluginUpdater.commandData(nbtCommand);
 			InventoryEvents.commandData(nbtCommand);
+			Others.commandData(nbtCommand);
 
 			commands.registrar().register(nbtCommand.build());
 
