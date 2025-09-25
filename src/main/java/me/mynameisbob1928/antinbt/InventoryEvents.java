@@ -130,6 +130,7 @@ public class InventoryEvents implements Listener {
 		}
 	}
 
+	//#region
 	private final Set<DataComponentType> nbtToIgnore = Set.of(
 			DataComponentTypes.BANNER_PATTERNS, // Banner or shield patterns
 			DataComponentTypes.BASE_COLOR, // Shield colour
@@ -179,6 +180,7 @@ public class InventoryEvents implements Listener {
 			DataComponentTypes.WOLF_VARIANT
 
 	);
+	//#endregion
 
 	private boolean nbtPresent(ItemStack item) {
 		if (item == null)
@@ -258,5 +260,4 @@ public class InventoryEvents implements Listener {
 			return Command.SINGLE_SUCCESS;
 		}));
 	}
-
 }
