@@ -3,6 +3,9 @@ package me.mynameisbob1928.antinbt;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.Bukkit;
@@ -34,6 +37,7 @@ import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.TextColor;
 
 public class InventoryEvents implements Listener {
+	public static final Gson gson = new Gson();
 	public static boolean logEvents = false;
 
 	@EventHandler
@@ -147,6 +151,7 @@ public class InventoryEvents implements Listener {
 			DataComponentTypes.LORE,
 			DataComponentTypes.MAP_ID, // All (non-blank) maps have a map id
 			DataComponentTypes.NOTE_BLOCK_SOUND, // Sound that plays when a player head on a noteblock (can be customised)
+			DataComponentTypes.POTION_CONTENTS, // This is handled more thoroughly elsewhere
 			DataComponentTypes.PROFILE, // Player head data
 			DataComponentTypes.REPAIR_COST,
 			DataComponentTypes.STORED_ENCHANTMENTS, // Enchantments applied to an item but do not have any effect, like enchantments on an enchanted book
@@ -196,7 +201,7 @@ public class InventoryEvents implements Listener {
 			return !item.matchesWithoutData(defaultItem, nbtToIgnore, true); // Also put it here since perhaps some data might not be checked by item meta
 		}
 
-		ItemMeta meta = item.getItemMeta();
+		ItemMeta meta = item.clone().getItemMeta();
 
 		if (item.isDataOverridden(DataComponentTypes.CHARGED_PROJECTILES) // Ensure that crossbows are only charged with either a firework or an arrow
 				&& meta instanceof CrossbowMeta crossbowMeta) {
@@ -230,6 +235,107 @@ public class InventoryEvents implements Listener {
 		for (Map.Entry<Enchantment, Integer> enchant : meta.getEnchants().entrySet()) { // For any enchantments on an item, check if they are above their max set limit
 			if (enchant.getKey().getMaxLevel() < enchant.getValue())
 				return true;
+		}
+
+		Map<String, Object> nbt = item.serialize();
+		// the custom_data tag needs to be checked in a special way so it's serialized as an nbt json string and then parsed into json where it can then be inspected properly
+		if (nbt.containsKey("components")) {
+
+			@SuppressWarnings("unchecked")
+			Map<String, Object> components = (Map<String, Object>) nbt.get("components");
+			boolean componentsEdited = false;
+
+			if (components.containsKey("minecraft:custom_data")) {
+				JsonObject customDataJson = gson.fromJson((String) components.get("minecraft:custom_data"),
+						JsonObject.class);
+				boolean changed = false;
+
+				if (customDataJson.has("Skulls:ID")) { // allow skulls from /skulls
+					customDataJson.remove("Skulls:ID");
+					changed = true;
+				}
+
+				if (customDataJson.has("SongItemData")) { // allow items generated from the SongPlayer mod
+					customDataJson.remove("SongItemData");
+					changed = true;
+				}
+
+				if (changed) {
+					if (customDataJson.isEmpty()) {
+						components.remove("minecraft:custom_data");
+						componentsEdited = true;
+					} else {
+						return true;
+					}
+				}
+			}
+
+			if (components.containsKey("minecraft:potion_contents")) { // Allow normal potions while blocking custom made potions
+				String potionContents = (String) components.get("minecraft:potion_contents");
+
+				if (potionContents.contains("custom_effects")) {
+					return true;
+				}
+			}
+
+			if (components.containsKey("minecraft:entity_data")) { // Allow invisible (glow) item frames
+
+				if (item.getType() == Material.ITEM_FRAME) {
+
+					JsonObject entityData = gson.fromJson((String) components.get("minecraft:entity_data"),
+							JsonObject.class);
+
+					if (entityData.has("id")) {
+						if (!entityData.get("id").getAsString().equals("item_frame")) {
+							return true;
+						}
+						entityData.remove("id");
+					}
+
+					if (entityData.has("Invisible")) {
+						entityData.remove("Invisible");
+					}
+
+					if (entityData.isEmpty()) {
+						components.remove("minecraft:entity_data");
+						componentsEdited = true;
+					}
+
+				} else if (item.getType() == Material.GLOW_ITEM_FRAME) {
+
+					JsonObject entityData = gson.fromJson((String) components.get("minecraft:entity_data"),
+							JsonObject.class);
+
+					if (entityData.has("id")) {
+						if (!entityData.get("id").getAsString().equals("glow_item_frame")) {
+							return true;
+						}
+						entityData.remove("id");
+					}
+
+					if (entityData.has("Invisible")) {
+						entityData.remove("Invisible");
+					}
+
+					if (entityData.isEmpty()) {
+						components.remove("minecraft:entity_data");
+						componentsEdited = true;
+					}
+
+				}
+
+			}
+
+			if (components.containsKey("minecraft:debug_stick_state") && item.getType() == Material.DEBUG_STICK) {
+				// debug sticks hold states in the specific data type for a block it last edited so that needs to be allowed
+				components.remove("minecraft:debug_stick_state");
+				componentsEdited = true;
+			}
+
+			if (componentsEdited) {
+				ItemStack deserialisedItem = ItemStack.deserialize(nbt);
+				return !deserialisedItem.matchesWithoutData(defaultItem, nbtToIgnore, true);
+			}
 		}
 
 		return !item.matchesWithoutData(defaultItem, nbtToIgnore, true);
