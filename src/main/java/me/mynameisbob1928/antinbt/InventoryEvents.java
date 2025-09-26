@@ -193,7 +193,7 @@ public class InventoryEvents implements Listener {
 			return false;
 
 		Map<String, Object> nbt = item.serialize();
-		if (nbt.toString().length() > 20000) {
+		if (nbt.toString().length() > 30000) {
 			return true;
 		}
 
