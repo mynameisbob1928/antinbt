@@ -192,6 +192,11 @@ public class InventoryEvents implements Listener {
 		if (item == null)
 			return false;
 
+		Map<String, Object> nbt = item.serialize();
+		if (nbt.toString().length() > 20000) {
+			return true;
+		}
+
 		if (Material.BUNDLE == item.getType()) { // completely block bundles
 			return true;
 		}
@@ -238,7 +243,7 @@ public class InventoryEvents implements Listener {
 				return true;
 		}
 
-		Map<String, Object> nbt = item.serialize();
+		// nbt is defined earlier so that item size can be checked sooner
 		// the custom_data tag needs to be checked in a special way so it's serialized as an nbt json string and then parsed into json where it can then be inspected properly
 		if (nbt.containsKey("components")) {
 
