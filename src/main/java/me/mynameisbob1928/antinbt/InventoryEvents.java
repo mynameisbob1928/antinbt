@@ -16,6 +16,7 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -40,7 +41,7 @@ public class InventoryEvents implements Listener {
 	public static final Gson gson = new Gson();
 	public static boolean logEvents = false;
 
-	@EventHandler
+	@EventHandler(priority = EventPriority.LOWEST)
 	public void ClickEvent(InventoryClickEvent event) {
 		if (event.getWhoClicked().hasPermission("antinbt.bypass"))
 			return;
@@ -51,7 +52,7 @@ public class InventoryEvents implements Listener {
 		Bukkit.getScheduler().runTask(AntiNbt.instance, () -> checkInventory(event));
 	}
 
-	@EventHandler
+	@EventHandler(priority = EventPriority.LOWEST)
 	public void PickupEvent(EntityPickupItemEvent event) {
 		if (event.getEntityType() != EntityType.PLAYER)
 			return;
@@ -65,7 +66,7 @@ public class InventoryEvents implements Listener {
 		}
 	}
 
-	@EventHandler
+	@EventHandler(priority = EventPriority.LOWEST)
 	public void PlayerDropEvent(PlayerDropItemEvent event) {
 		if (event.getPlayer().hasPermission("antinbt.bypass"))
 			return;
