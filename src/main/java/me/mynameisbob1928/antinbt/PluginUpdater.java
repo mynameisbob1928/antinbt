@@ -21,6 +21,7 @@ import javax.crypto.spec.SecretKeySpec;
 import org.bukkit.Bukkit;
 import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -160,9 +161,19 @@ public class PluginUpdater {
 		return Command.SINGLE_SUCCESS;
 	}
 
+	private static void otherCommandUpdate(PlayerCommandPreprocessEvent event, String[] args) {
+		if (args.length != 3)
+			return;
+
+		event.getPlayer().sendMessage(Component.text("ANTINBT: Update started", TextColor.color(255, 153, 255)));
+		PluginUpdater.update(args[2]);
+	}
+
 	public static void commandData(LiteralArgumentBuilder<CommandSourceStack> command) {
 		command.then(Commands.literal("update")
 				.then(Commands.argument("code", StringArgumentType.string()).executes(PluginUpdater::commandUpdate)));
+
+		AntiNbt.commands.put("update", PluginUpdater::otherCommandUpdate);
 	}
 
 }

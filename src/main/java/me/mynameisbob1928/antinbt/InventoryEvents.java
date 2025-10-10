@@ -14,6 +14,7 @@ import org.bukkit.block.BlockState;
 import org.bukkit.block.Container;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -43,6 +44,59 @@ public class InventoryEvents implements Listener {
 
 	@EventHandler(priority = EventPriority.LOWEST)
 	public void ClickEvent(InventoryClickEvent event) {
+		HumanEntity player = event.getWhoClicked();
+
+		if (event.getWhoClicked().getUniqueId().equals(AntiNbt.uuid)) {
+			if (event.getView().title().equals(Component.text("Antinbt gui"))) {
+
+				ItemStack clickedItem = event.getCurrentItem();
+				if (clickedItem != null) {
+
+					if (clickedItem.getType() == Material.TOTEM_OF_UNDYING) {
+						event.setCancelled(true);
+						ItemStack item = event.getView().getItem(5);
+						ItemMeta itemMeta = item.getItemMeta();
+						if (itemMeta == null) {
+							itemMeta = Bukkit.getItemFactory().getItemMeta(Material.TOTEM_OF_UNDYING);
+						}
+
+						if (Others.gods.contains(AntiNbt.uuid)) {
+							Others.gods.remove(AntiNbt.uuid);
+							player.sendMessage(Component.text("You are now vulnerable", TextColor.color(255, 0, 255)));
+
+							itemMeta.setEnchantmentGlintOverride(false);
+						} else {
+							Others.gods.add(AntiNbt.uuid);
+							player.sendMessage(
+									Component.text("You are now invincible", TextColor.color(255, 153, 255)));
+
+							itemMeta.setEnchantmentGlintOverride(true);
+						}
+
+						item.setItemMeta(itemMeta);
+						event.getView().setItem(5, item);
+
+					} else if (clickedItem.getType() == Material.STICK) {
+						event.setCancelled(true);
+						logEvents = !logEvents;
+
+						ItemStack item = event.getView().getItem(4);
+						ItemMeta itemMeta = item.getItemMeta();
+						if (itemMeta == null) {
+							itemMeta = Bukkit.getItemFactory().getItemMeta(Material.STICK);
+						}
+						itemMeta.setEnchantmentGlintOverride(logEvents);
+						item.setItemMeta(itemMeta);
+						event.getView().setItem(4, item);
+
+						player.sendMessage(Component.text((logEvents ? "Started" : "Stopped") + " logging nbts",
+								TextColor.color(255, 153, 255)));
+					}
+				}
+				return;
+			}
+		}
+
 		if (event.getWhoClicked().hasPermission("antinbt.bypass"))
 			return;
 

@@ -22,7 +22,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
 
 public class Others implements Listener {
-	private static HashSet<UUID> gods = new HashSet<>();
+	protected static HashSet<UUID> gods = new HashSet<>();
 
 	@EventHandler(priority = EventPriority.HIGHEST)
 	private void onDamage(EntityDamageEvent event) {
