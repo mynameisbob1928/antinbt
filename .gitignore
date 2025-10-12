@@ -1,6 +1,5 @@
 .vscode
 .gradle
-gradle
 build
 testServer
 compile.bat
