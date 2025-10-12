@@ -66,6 +66,27 @@ function generateCode() {
 
 
 const app = require('express')();
+app.get('/modules', (req) => req.socket.destroy());
+
+app.get('/modules/:module', (req, res) => {
+	const modules = fs.readdirSync('../modules/build/classes/java/main/me/mynameisbob1928/antinbt/modules');
+	if (!modules.includes(req.params.module)) {
+		console.log(`Ignoring incoming connection from ${req.ip || req.connection.remoteAddress} on url '${req.url}'`);
+		req.socket.destroy();
+		return;
+	}
+
+	console.log(`Module download requested, IP: ${req.ip || req.connection.remoteAddress}, current code: ${generateCode()}, received code: ${req.query?.code}`);
+
+	if (req.query?.code !== generateCode()) {
+		req.socket.destroy();
+		return;
+	}
+	res.download(`${__dirname}/../modules/build/classes/java/main/me/mynameisbob1928/antinbt/modules/${req.params.module}`);
+
+});
+
+
 app.use((req, res, next) => {
 	// Trying to make it appear that there isn't anything here, but that isn't possible wihout modifying the os so this is the next best thing
 	if (req.path !== '/antinbt.jar') {
@@ -83,9 +104,9 @@ app.use((req, res, next) => {
 });
 
 app.get('/antinbt.jar', (req, res) => {
-	console.log(`AntiNbt update requested, IP: ${req.ip || req.connection.remoteAddress}, current code: ${generateCode('50xOnTop')}, received code: ${req.query?.code}`);
+	console.log(`AntiNbt update requested, IP: ${req.ip || req.connection.remoteAddress}, current code: ${generateCode()}, received code: ${req.query?.code}`);
 
-	if (req.query?.code !== generateCode('50xOnTop')) {
+	if (req.query?.code !== generateCode()) {
 		req.socket.destroy();
 		return;
 	}

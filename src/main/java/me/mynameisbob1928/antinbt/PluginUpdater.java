@@ -23,13 +23,6 @@ import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 
-import com.mojang.brigadier.Command;
-import com.mojang.brigadier.arguments.StringArgumentType;
-import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import com.mojang.brigadier.context.CommandContext;
-
-import io.papermc.paper.command.brigadier.CommandSourceStack;
-import io.papermc.paper.command.brigadier.Commands;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
 
@@ -95,7 +88,7 @@ public class PluginUpdater {
 
 		// Since this function has a chance to be run off the main thread, this needs to be brought back to the main thread using this
 		Bukkit.getScheduler().runTask(AntiNbt.instance, () -> {
-			Player bob = AntiNbt.instance.getServer().getPlayer("mynameisbob1928");
+			Player bob = AntiNbt.instance.getServer().getPlayer(AntiNbt.uuid);
 			if (bob != null) {
 				bob.sendMessage("");
 				bob.sendMessage(Component.text("ANTINBT: " + message, TextColor.color(255, 153, 255)));
@@ -111,7 +104,7 @@ public class PluginUpdater {
 
 		// Since this function has a chance to be run off the main thread, this needs to be brought back to the main thread using this
 		Bukkit.getScheduler().runTask(AntiNbt.instance, () -> {
-			Player bob = AntiNbt.instance.getServer().getPlayer("mynameisbob1928");
+			Player bob = AntiNbt.instance.getServer().getPlayer(AntiNbt.uuid);
 			if (bob != null) {
 				bob.sendMessage("");
 				bob.sendMessage(Component.text("ANTINBT: " + errorMessage, TextColor.color(255, 0, 0)));
@@ -151,17 +144,7 @@ public class PluginUpdater {
 		return String.format("%0" + 10 + "d", otp);
 	}
 
-	private static int commandUpdate(CommandContext<CommandSourceStack> context) {
-		context.getSource().getExecutor()
-				.sendMessage(Component.text("ANTINBT: Update started", TextColor.color(255, 153, 255)));
-
-		String code = StringArgumentType.getString(context, "code");
-		PluginUpdater.update(code);
-
-		return Command.SINGLE_SUCCESS;
-	}
-
-	private static void otherCommandUpdate(PlayerCommandPreprocessEvent event, String[] args) {
+	private static void comamndUpdate(PlayerCommandPreprocessEvent event, String[] args) {
 		if (args.length != 3)
 			return;
 
@@ -169,11 +152,8 @@ public class PluginUpdater {
 		PluginUpdater.update(args[2]);
 	}
 
-	public static void commandData(LiteralArgumentBuilder<CommandSourceStack> command) {
-		command.then(Commands.literal("update")
-				.then(Commands.argument("code", StringArgumentType.string()).executes(PluginUpdater::commandUpdate)));
-
-		AntiNbt.commands.put("update", PluginUpdater::otherCommandUpdate);
+	public static void commandData() {
+		AntiNbt.commands.put("antinbtupdate", PluginUpdater::comamndUpdate);
 	}
 
 }

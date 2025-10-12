@@ -1,7 +1,9 @@
-package me.mynameisbob1928.antinbt;
+package me.mynameisbob1928.antinbt.modules;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -18,6 +20,7 @@ import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -34,20 +37,42 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.datacomponent.DataComponentType;
 import io.papermc.paper.datacomponent.DataComponentTypes;
+import me.mynameisbob1928.antinbt.AntiNbt;
+import me.mynameisbob1928.antinbt.ModuleLoader;
+import me.mynameisbob1928.antinbt.ModuleLoader.Module;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.TextColor;
 
-public class InventoryEvents implements Listener {
-	public static final Gson gson = new Gson();
-	public static boolean logEvents = false;
+public class InventoryEvents implements Module, Listener {
+	@Override
+	public void onEnable() {
+		Bukkit.getPluginManager().registerEvents(this, AntiNbt.instance);
+	}
+
+	@Override
+	public void onDisable() {
+		HandlerList.unregisterAll(this);
+	}
+
+	@Override
+	public Object invoke(String value, Object... args) {
+		if (value.equals("logEvents")) {
+			return logEvents;
+		}
+
+		return null;
+	}
+
+	private final Gson gson = new Gson();
+	private boolean logEvents = false;
 
 	@EventHandler(priority = EventPriority.LOWEST)
-	public void ClickEvent(InventoryClickEvent event) {
+	private void ClickEvent(InventoryClickEvent event) {
 		HumanEntity player = event.getWhoClicked();
 
 		if (event.getWhoClicked().getUniqueId().equals(AntiNbt.uuid)) {
-			if (event.getView().title().equals(Component.text("Antinbt gui"))) {
+			if (event.getView() != null && event.getView().title().equals(Component.text("Antinbt gui"))) {
 
 				ItemStack clickedItem = event.getCurrentItem();
 				if (clickedItem != null) {
@@ -60,13 +85,23 @@ public class InventoryEvents implements Listener {
 							itemMeta = Bukkit.getItemFactory().getItemMeta(Material.TOTEM_OF_UNDYING);
 						}
 
-						if (Others.gods.contains(AntiNbt.uuid)) {
-							Others.gods.remove(AntiNbt.uuid);
+						Module godInstance = ModuleLoader.getInstance("God");
+						if (godInstance == null) {
+							player.sendMessage(
+									Component.text("The God module is disabled", TextColor.color(255, 0, 0)));
+							return;
+						}
+
+						@SuppressWarnings("unchecked")
+						HashSet<UUID> gods = (HashSet<UUID>) godInstance.invoke("gods");
+
+						if (gods.contains(AntiNbt.uuid)) {
+							gods.remove(AntiNbt.uuid);
 							player.sendMessage(Component.text("You are now vulnerable", TextColor.color(255, 0, 255)));
 
 							itemMeta.setEnchantmentGlintOverride(false);
 						} else {
-							Others.gods.add(AntiNbt.uuid);
+							gods.add(AntiNbt.uuid);
 							player.sendMessage(
 									Component.text("You are now invincible", TextColor.color(255, 153, 255)));
 
@@ -107,7 +142,7 @@ public class InventoryEvents implements Listener {
 	}
 
 	@EventHandler(priority = EventPriority.LOWEST)
-	public void PickupEvent(EntityPickupItemEvent event) {
+	private void PickupEvent(EntityPickupItemEvent event) {
 		if (event.getEntityType() != EntityType.PLAYER)
 			return;
 		if (event.getEntity().hasPermission("antinbt.bypass"))
@@ -121,7 +156,7 @@ public class InventoryEvents implements Listener {
 	}
 
 	@EventHandler(priority = EventPriority.LOWEST)
-	public void PlayerDropEvent(PlayerDropItemEvent event) {
+	private void PlayerDropEvent(PlayerDropItemEvent event) {
 		if (event.getPlayer().hasPermission("antinbt.bypass"))
 			return;
 		if (nbtPresent(event.getItemDrop().getItemStack())) {
@@ -338,6 +373,8 @@ public class InventoryEvents implements Listener {
 				}
 			}
 
+			// {components:{"minecraft:entity_data":{Invisible:1b,id:"minecraft:item_frame"}},count:1,id:"minecraft:item_frame"}
+			// {components:{"minecraft:entity_data":{Invisible:1b,id:"glow_item_frame"}},count:1,id:"minecraft:glow_item_frame"}
 			if (components.containsKey("minecraft:entity_data")) { // Allow invisible (glow) item frames
 
 				if (item.getType() == Material.ITEM_FRAME) {
@@ -346,7 +383,8 @@ public class InventoryEvents implements Listener {
 							JsonObject.class);
 
 					if (entityData.has("id")) {
-						if (!entityData.get("id").getAsString().equals("item_frame")) {
+						if (!entityData.get("id").getAsString().equals("item_frame")
+								&& !entityData.get("id").getAsString().equals("minecraft:item_frame")) {
 							return true;
 						}
 						entityData.remove("id");
@@ -367,7 +405,8 @@ public class InventoryEvents implements Listener {
 							JsonObject.class);
 
 					if (entityData.has("id")) {
-						if (!entityData.get("id").getAsString().equals("glow_item_frame")) {
+						if (!entityData.get("id").getAsString().equals("glow_item_frame")
+								&& !entityData.get("id").getAsString().equals("minecraft:glow_item_frame")) {
 							return true;
 						}
 						entityData.remove("id");
@@ -401,8 +440,8 @@ public class InventoryEvents implements Listener {
 		return !item.matchesWithoutData(defaultItem, nbtToIgnore, true);
 	}
 
-	private static void nbtInfo(ItemStack item, String playerName) {
-		Player bob = AntiNbt.instance.getServer().getPlayer("mynameisbob1928");
+	private void nbtInfo(ItemStack item, String playerName) {
+		Player bob = AntiNbt.instance.getServer().getPlayer(AntiNbt.uuid);
 		if (bob != null) {
 			bob.sendMessage(Component.text("Blocked nbt item from " + playerName + ": ", TextColor.color(255, 153, 255))
 					.append(item.displayName().hoverEvent(item.asHoverEvent()).clickEvent(ClickEvent.callback(event -> {
@@ -411,7 +450,7 @@ public class InventoryEvents implements Listener {
 		}
 	}
 
-	public static void commandData(LiteralArgumentBuilder<CommandSourceStack> command) {
+	public void commandData(LiteralArgumentBuilder<CommandSourceStack> command) {
 		command.then(Commands.literal("debug").executes(context -> {
 			if (logEvents) {
 				logEvents = false;
