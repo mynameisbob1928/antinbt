@@ -1,3 +1,5 @@
+#!/bin/sh
+
 cp -r ./src/main/java/me/mynameisbob1928/antinbt/modules ./modules/src/main/java/me/mynameisbob1928/antinbt/modules
 
 rm -fr ./src/main/java/me/mynameisbob1928/antinbt/modules
