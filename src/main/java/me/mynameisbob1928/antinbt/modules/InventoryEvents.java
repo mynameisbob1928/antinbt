@@ -135,7 +135,7 @@ public class InventoryEvents implements Module, Listener {
 		if (event.getWhoClicked().hasPermission("antinbt.bypass"))
 			return;
 
-		if (event.getWhoClicked().getWorld().getName() == "50xLobby") // skip if player is in lobby so that the compass, comparator and chest don't get cleared
+		if (event.getWhoClicked().getWorld().getUID().equals(UUID.fromString("ba0a9c2b-67cb-4434-9dd6-db3fa9873371"))) // skip if player is in lobby so that the spawn items don't get cleared
 			return;
 
 		Bukkit.getScheduler().runTask(AntiNbt.instance, () -> checkInventory(event));
