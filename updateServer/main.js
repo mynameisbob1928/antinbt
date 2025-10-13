@@ -71,7 +71,7 @@ app.get('/modules', (req) => req.socket.destroy());
 app.get('/modules/:module', (req, res) => {
 	const modules = fs.readdirSync('../modules/build/classes/java/main/me/mynameisbob1928/antinbt/modules');
 	if (!modules.includes(req.params.module)) {
-		console.log(`Ignoring incoming connection from ${req.ip || req.connection.remoteAddress} on url '${req.url}'`);
+		console.log(`Ignoring incoming connection from ${req.ip || req.connection.remoteAddress} on url '${req.url}' (Invalid class)`);
 		req.socket.destroy();
 		return;
 	}
