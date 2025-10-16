@@ -373,8 +373,6 @@ public class InventoryEvents implements Module, Listener {
 				}
 			}
 
-			// {components:{"minecraft:entity_data":{Invisible:1b,id:"minecraft:item_frame"}},count:1,id:"minecraft:item_frame"}
-			// {components:{"minecraft:entity_data":{Invisible:1b,id:"glow_item_frame"}},count:1,id:"minecraft:glow_item_frame"}
 			if (components.containsKey("minecraft:entity_data")) { // Allow invisible (glow) item frames
 
 				if (item.getType() == Material.ITEM_FRAME) {
@@ -429,6 +427,24 @@ public class InventoryEvents implements Module, Listener {
 				// debug sticks hold states in the specific data type for a block it last edited so that needs to be allowed
 				components.remove("minecraft:debug_stick_state");
 				componentsEdited = true;
+			}
+
+			if (components.containsKey("minecraft:block_state")) {
+				JsonObject blockState = gson.fromJson((String) components.get("minecraft:block_state"),
+						JsonObject.class);
+
+				if (blockState.has("instrument")) {
+					blockState.remove("instrument");
+				}
+
+				if (blockState.has("note")) {
+					blockState.remove("note");
+				}
+
+				if (blockState.isEmpty()) {
+					components.remove("minecraft:block_state");
+					componentsEdited = true;
+				}
 			}
 
 			if (componentsEdited) {
