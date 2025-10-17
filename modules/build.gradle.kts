@@ -21,7 +21,7 @@ repositories {
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.8-R0.1-SNAPSHOT")
 
-	compileOnly(files("../build/libs/antinbt-0.3.0.jar"))
+	compileOnly(files("../build/libs/antinbt-0.3.1.jar"))
 }
 
 group = "me.mynameisbob1928"

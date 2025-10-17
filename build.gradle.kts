@@ -23,7 +23,7 @@ dependencies {
 }
 
 group = "me.mynameisbob1928"
-version = "0.3.0"
+version = "0.3.1"
 description = "AntiNbt"
 java.sourceCompatibility = JavaVersion.VERSION_21
 
