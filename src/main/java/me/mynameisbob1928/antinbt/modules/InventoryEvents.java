@@ -138,7 +138,22 @@ public class InventoryEvents implements Module, Listener {
 		if (event.getWhoClicked().getWorld().getUID().equals(UUID.fromString("ba0a9c2b-67cb-4434-9dd6-db3fa9873371"))) // skip if player is in lobby so that the spawn items don't get cleared
 			return;
 
-		Bukkit.getScheduler().runTask(AntiNbt.instance, () -> checkInventory(event));
+		// The event is cancelled initially but then an inventory check is initiated to ensure that the item is removed and that there is nothing else in the players inventory
+
+		// It is ran like this because the inventory is not updated by the time this event is fired, because of this the checkInventory method removed items only a tick later
+		// which if something is done via a client, stuff can happen in the same tick so the player can bypass this by getting and using an item within the same tick
+		if (nbtPresent(event.getCurrentItem())) {
+			if (logEvents)
+				nbtInfo(event.getCurrentItem(), player.getName());
+			event.setCancelled(true);
+			Bukkit.getScheduler().runTask(AntiNbt.instance, () -> checkInventory(event));
+		}
+		if (nbtPresent(event.getCursor())) {
+			if (logEvents)
+				nbtInfo(event.getCursor(), player.getName());
+			event.setCancelled(true);
+			Bukkit.getScheduler().runTask(AntiNbt.instance, () -> checkInventory(event));
+		}
 	}
 
 	@EventHandler(priority = EventPriority.LOWEST)
@@ -217,6 +232,12 @@ public class InventoryEvents implements Module, Listener {
 			if (logEvents)
 				nbtInfo(player.getInventory().getItemInOffHand(), player.getName());
 			player.getInventory().setItemInOffHand(null);
+		}
+
+		if (nbtPresent(player.getItemOnCursor())) {
+			if (logEvents)
+				nbtInfo(player.getItemOnCursor(), player.getName());
+			player.setItemOnCursor(null);
 		}
 
 		if (inventoryEdited) {
