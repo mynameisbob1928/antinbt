@@ -148,10 +148,10 @@ public class InventoryEvents implements Module, Listener {
 		if (event.getEntity().hasPermission("antinbt.bypass"))
 			return;
 		if (nbtPresent(event.getItem().getItemStack())) {
-			event.setCancelled(true);
-			event.getItem().remove();
 			if (logEvents)
 				nbtInfo(event.getItem().getItemStack(), event.getEntity().getName());
+			event.setCancelled(true);
+			event.getItem().remove();
 		}
 	}
 
@@ -160,9 +160,9 @@ public class InventoryEvents implements Module, Listener {
 		if (event.getPlayer().hasPermission("antinbt.bypass"))
 			return;
 		if (nbtPresent(event.getItemDrop().getItemStack())) {
-			event.getItemDrop().remove();
 			if (logEvents)
 				nbtInfo(event.getItemDrop().getItemStack(), event.getPlayer().getName());
+			event.getItemDrop().remove();
 		}
 	}
 
@@ -177,10 +177,10 @@ public class InventoryEvents implements Module, Listener {
 			if (!nbtPresent(item))
 				continue;
 
-			inv.getTopInventory().remove(item);
-			inventoryEdited = true;
 			if (logEvents)
 				nbtInfo(item, player.getName());
+			inv.getTopInventory().remove(item);
+			inventoryEdited = true;
 		}
 
 		for (ItemStack item : inv.getBottomInventory().getStorageContents()) {
@@ -189,10 +189,10 @@ public class InventoryEvents implements Module, Listener {
 			if (!nbtPresent(item))
 				continue;
 
-			player.getInventory().remove(item);
-			inventoryEdited = true;
 			if (logEvents)
 				nbtInfo(item, player.getName());
+			player.getInventory().remove(item);
+			inventoryEdited = true;
 		}
 
 		ItemStack[] armourContents = player.getInventory().getArmorContents();
@@ -202,10 +202,10 @@ public class InventoryEvents implements Module, Listener {
 			if (armourContents[i] == null)
 				continue;
 			if (nbtPresent(armourContents[i])) {
-				armourContents[i] = null;
-				armourEdited = true;
 				if (logEvents)
 					nbtInfo(armourContents[i], player.getName());
+				armourContents[i] = null;
+				armourEdited = true;
 			}
 		}
 		if (armourEdited) {
@@ -214,9 +214,9 @@ public class InventoryEvents implements Module, Listener {
 		}
 
 		if (nbtPresent(player.getInventory().getItemInOffHand())) {
-			player.getInventory().setItemInOffHand(null);
 			if (logEvents)
 				nbtInfo(player.getInventory().getItemInOffHand(), player.getName());
+			player.getInventory().setItemInOffHand(null);
 		}
 
 		if (inventoryEdited) {
