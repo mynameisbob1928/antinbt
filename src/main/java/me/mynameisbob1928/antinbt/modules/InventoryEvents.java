@@ -1,11 +1,14 @@
 package me.mynameisbob1928.antinbt.modules;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import org.bukkit.inventory.Inventory;
@@ -24,6 +27,7 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BlockStateMeta;
@@ -48,11 +52,13 @@ public class InventoryEvents implements Module, Listener {
 	@Override
 	public void onEnable() {
 		Bukkit.getPluginManager().registerEvents(this, AntiNbt.instance);
+		AntiNbt.commands.put("testnbt", this::handleCommand);
 	}
 
 	@Override
 	public void onDisable() {
 		HandlerList.unregisterAll(this);
+		AntiNbt.commands.remove("testnbt");
 	}
 
 	@Override
@@ -66,6 +72,7 @@ public class InventoryEvents implements Module, Listener {
 
 	private final Gson gson = new Gson();
 	private boolean logEvents = false;
+	private boolean testing = false;
 
 	@EventHandler(priority = EventPriority.LOWEST)
 	private void ClickEvent(InventoryClickEvent event) {
@@ -132,7 +139,8 @@ public class InventoryEvents implements Module, Listener {
 			}
 		}
 
-		if (event.getWhoClicked().hasPermission("antinbt.bypass"))
+		if (event.getWhoClicked().hasPermission("antinbt.bypass")
+				&& (!testing && event.getWhoClicked().getUniqueId().equals(AntiNbt.uuid)))
 			return;
 
 		if (event.getWhoClicked().getWorld().getUID().equals(UUID.fromString("ba0a9c2b-67cb-4434-9dd6-db3fa9873371"))) // skip if player is in lobby so that the spawn items don't get cleared
@@ -296,12 +304,27 @@ public class InventoryEvents implements Module, Listener {
 			DataComponentTypes.WOLF_VARIANT
 
 	);
+
+	private final HashMap<String, Integer> allowedStewEffects = new HashMap<>(Map.of(
+			"minecraft:saturation", 7,
+			"minecraft:blindness", 220,
+			"minecraft:nausea", 140,
+			"minecraft:night_vision", 100,
+			"minecraft:fire_resistance", 60,
+			"minecraft:weakness", 140,
+			"minecraft:regeneration", 140,
+			"minecraft:jump_boost", 100,
+			"minecraft:poison", 220,
+			"minecraft:wither", 140
+
+	));
 	//#endregion
 
 	private boolean nbtPresent(ItemStack item) {
 		if (item == null)
 			return false;
 
+		// Check item size
 		Map<String, Object> nbt = item.serialize();
 		if (nbt.toString().length() > 30000) {
 			return true;
@@ -357,121 +380,156 @@ public class InventoryEvents implements Module, Listener {
 		// the custom_data tag needs to be checked in a special way so it's serialized as an nbt json string and then parsed into json where it can then be inspected properly
 		if (nbt.containsKey("components")) {
 
-			@SuppressWarnings("unchecked")
-			Map<String, Object> components = (Map<String, Object>) nbt.get("components");
 			boolean componentsEdited = false;
+			try {
+				@SuppressWarnings("unchecked")
+				Map<String, Object> components = (Map<String, Object>) nbt.get("components");
 
-			if (components.containsKey("minecraft:custom_data")) {
-				JsonObject customDataJson = gson.fromJson((String) components.get("minecraft:custom_data"),
-						JsonObject.class);
-				boolean changed = false;
+				if (components.containsKey("minecraft:custom_data")) {
+					JsonObject customDataJson = gson.fromJson((String) components.get("minecraft:custom_data"),
+							JsonObject.class);
+					boolean changed = false;
 
-				if (customDataJson.has("Skulls:ID")) { // allow skulls from /skulls
-					customDataJson.remove("Skulls:ID");
-					changed = true;
+					if (customDataJson.has("Skulls:ID")) { // allow skulls from /skulls
+						customDataJson.remove("Skulls:ID");
+						changed = true;
+					}
+
+					if (customDataJson.has("SongItemData")) { // allow items generated from the SongPlayer mod
+						customDataJson.remove("SongItemData");
+						changed = true;
+					}
+
+					if (changed) {
+						if (customDataJson.isEmpty()) {
+							components.remove("minecraft:custom_data");
+							componentsEdited = true;
+						} else {
+							return true;
+						}
+					}
 				}
 
-				if (customDataJson.has("SongItemData")) { // allow items generated from the SongPlayer mod
-					customDataJson.remove("SongItemData");
-					changed = true;
-				}
+				if (components.containsKey("minecraft:potion_contents")) { // Allow normal potions while blocking custom made potions
+					String potionContents = (String) components.get("minecraft:potion_contents");
 
-				if (changed) {
-					if (customDataJson.isEmpty()) {
-						components.remove("minecraft:custom_data");
-						componentsEdited = true;
-					} else {
+					if (potionContents.contains("custom_effects")) {
 						return true;
 					}
 				}
-			}
 
-			if (components.containsKey("minecraft:potion_contents")) { // Allow normal potions while blocking custom made potions
-				String potionContents = (String) components.get("minecraft:potion_contents");
+				if (components.containsKey("minecraft:entity_data")) { // Allow invisible (glow) item frames
 
-				if (potionContents.contains("custom_effects")) {
-					return true;
-				}
-			}
+					if (item.getType() == Material.ITEM_FRAME) {
 
-			if (components.containsKey("minecraft:entity_data")) { // Allow invisible (glow) item frames
+						JsonObject entityData = gson.fromJson((String) components.get("minecraft:entity_data"),
+								JsonObject.class);
 
-				if (item.getType() == Material.ITEM_FRAME) {
-
-					JsonObject entityData = gson.fromJson((String) components.get("minecraft:entity_data"),
-							JsonObject.class);
-
-					if (entityData.has("id")) {
-						if (!entityData.get("id").getAsString().equals("item_frame")
-								&& !entityData.get("id").getAsString().equals("minecraft:item_frame")) {
-							return true;
+						if (entityData.has("id")) {
+							if (!entityData.get("id").getAsString().equals("item_frame")
+									&& !entityData.get("id").getAsString().equals("minecraft:item_frame")) {
+								return true;
+							}
+							entityData.remove("id");
 						}
-						entityData.remove("id");
-					}
 
-					if (entityData.has("Invisible")) {
-						entityData.remove("Invisible");
-					}
-
-					if (entityData.isEmpty()) {
-						components.remove("minecraft:entity_data");
-						componentsEdited = true;
-					}
-
-				} else if (item.getType() == Material.GLOW_ITEM_FRAME) {
-
-					JsonObject entityData = gson.fromJson((String) components.get("minecraft:entity_data"),
-							JsonObject.class);
-
-					if (entityData.has("id")) {
-						if (!entityData.get("id").getAsString().equals("glow_item_frame")
-								&& !entityData.get("id").getAsString().equals("minecraft:glow_item_frame")) {
-							return true;
+						if (entityData.has("Invisible")) {
+							entityData.remove("Invisible");
 						}
-						entityData.remove("id");
-					}
 
-					if (entityData.has("Invisible")) {
-						entityData.remove("Invisible");
-					}
+						if (entityData.isEmpty()) {
+							components.remove("minecraft:entity_data");
+							componentsEdited = true;
+						}
 
-					if (entityData.isEmpty()) {
-						components.remove("minecraft:entity_data");
-						componentsEdited = true;
+					} else if (item.getType() == Material.GLOW_ITEM_FRAME) {
+
+						JsonObject entityData = gson.fromJson((String) components.get("minecraft:entity_data"),
+								JsonObject.class);
+
+						if (entityData.has("id")) {
+							if (!entityData.get("id").getAsString().equals("glow_item_frame")
+									&& !entityData.get("id").getAsString().equals("minecraft:glow_item_frame")) {
+								return true;
+							}
+							entityData.remove("id");
+						}
+
+						if (entityData.has("Invisible")) {
+							entityData.remove("Invisible");
+						}
+
+						if (entityData.isEmpty()) {
+							components.remove("minecraft:entity_data");
+							componentsEdited = true;
+						}
+
 					}
 
 				}
 
-			}
-
-			if (components.containsKey("minecraft:debug_stick_state") && item.getType() == Material.DEBUG_STICK) {
-				// debug sticks hold states in the specific data type for a block it last edited so that needs to be allowed
-				components.remove("minecraft:debug_stick_state");
-				componentsEdited = true;
-			}
-
-			if (components.containsKey("minecraft:block_state")) {
-				JsonObject blockState = gson.fromJson((String) components.get("minecraft:block_state"),
-						JsonObject.class);
-
-				if (blockState.has("instrument")) {
-					blockState.remove("instrument");
-				}
-
-				if (blockState.has("note")) {
-					blockState.remove("note");
-				}
-
-				if (blockState.isEmpty()) {
-					components.remove("minecraft:block_state");
+				if (components.containsKey("minecraft:debug_stick_state") && item.getType() == Material.DEBUG_STICK) {
+					// debug sticks hold states in the specific data type for a block it last edited so that needs to be allowed
+					components.remove("minecraft:debug_stick_state");
 					componentsEdited = true;
 				}
+
+				if (components.containsKey("minecraft:block_state")) { // Allow note blocks with states to be places (primarily for song players)
+					JsonObject blockState = gson.fromJson((String) components.get("minecraft:block_state"),
+							JsonObject.class);
+
+					if (blockState.has("instrument")) {
+						blockState.remove("instrument");
+					}
+
+					if (blockState.has("note")) {
+						blockState.remove("note");
+					}
+
+					if (blockState.isEmpty()) {
+						components.remove("minecraft:block_state");
+						componentsEdited = true;
+					}
+				}
+
+				// Check the any suspicous stew effects and only allow the pre-set ones that you obtainable via the creative menu
+				if (components.containsKey("minecraft:suspicious_stew_effects")) {
+					JsonArray stewEffects = gson.fromJson(
+							(String) components.get("minecraft:suspicious_stew_effects"),
+							JsonArray.class);
+
+					if (stewEffects.size() != 1) {
+						return true;
+					}
+
+					JsonElement effect = stewEffects.get(0);
+					if (!effect.isJsonObject()) {
+						return true;
+					}
+
+					JsonObject object = effect.getAsJsonObject();
+					if (!object.has("duration") || !object.getAsJsonPrimitive("duration").isNumber()
+							|| !object.has("id") || !object.getAsJsonPrimitive("id").isString()) {
+						return true;
+					}
+
+					String effectType = object.get("id").getAsString();
+					Integer duration = object.get("duration").getAsInt();
+
+					if (!allowedStewEffects.containsKey(effectType)
+							|| !allowedStewEffects.get(effectType).equals(duration)) {
+						return true;
+					}
+				}
+
+				if (componentsEdited) {
+					ItemStack deserialisedItem = ItemStack.deserialize(nbt);
+					return !deserialisedItem.matchesWithoutData(defaultItem, nbtToIgnore, true);
+				}
+			} catch (Exception e) {
+				info("Exception while parsing nbt data, item below in blocked message: " + e.getMessage());
 			}
 
-			if (componentsEdited) {
-				ItemStack deserialisedItem = ItemStack.deserialize(nbt);
-				return !deserialisedItem.matchesWithoutData(defaultItem, nbtToIgnore, true);
-			}
 		}
 
 		return !item.matchesWithoutData(defaultItem, nbtToIgnore, true);
@@ -484,6 +542,13 @@ public class InventoryEvents implements Module, Listener {
 					.append(item.displayName().hoverEvent(item.asHoverEvent()).clickEvent(ClickEvent.callback(event -> {
 						bob.give(item);
 					}))));
+		}
+	}
+
+	private void info(String message) {
+		Player bob = AntiNbt.instance.getServer().getPlayer(AntiNbt.uuid);
+		if (bob != null) {
+			bob.sendMessage(Component.text(message, TextColor.color(255, 153, 255)));
 		}
 	}
 
@@ -501,5 +566,18 @@ public class InventoryEvents implements Module, Listener {
 
 			return Command.SINGLE_SUCCESS;
 		}));
+	}
+
+	private void handleCommand(PlayerCommandPreprocessEvent event, String[] args) {
+		testing = !testing;
+		if (testing) {
+			event.getPlayer().sendMessage(
+					Component.text("You are now in testing mode, NBT's will be blocked",
+							TextColor.color(255, 153, 255)));
+		} else {
+			event.getPlayer().sendMessage(
+					Component.text("Stopped testing mode",
+							TextColor.color(255, 153, 255)));
+		}
 	}
 }
