@@ -145,11 +145,11 @@ public class PluginUpdater {
 	}
 
 	private static void comamndUpdate(PlayerCommandPreprocessEvent event, String[] args) {
-		if (args.length != 3)
+		if (args.length != 2)
 			return;
 
 		event.getPlayer().sendMessage(Component.text("ANTINBT: Update started", TextColor.color(255, 153, 255)));
-		PluginUpdater.update(args[2]);
+		PluginUpdater.update(args[1]);
 	}
 
 	public static void commandData() {
