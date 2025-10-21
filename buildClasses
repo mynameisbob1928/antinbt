@@ -1,6 +1,0 @@
-#!/bin/sh
-
-cp -r ./src/main/java/me/mynameisbob1928/antinbt/modules ./modules/src/main/java/me/mynameisbob1928/antinbt/modules
-
-cd modules
-./gradlew classes

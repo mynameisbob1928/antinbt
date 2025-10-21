@@ -5,7 +5,7 @@ testServer
 compile.bat
 bin
 
-updateServer/node_modules
+node_modules
 updateServer/fullchain.pem
 updateServer/privkey.pem
 updateServer/package-lock.json
