@@ -66,6 +66,20 @@ function generateCode() {
 
 
 const app = require('express')();
+
+if (process.argv.includes('--local')) {
+	console.log('Only listening for local connections');
+	app.use((req, res, next) => {
+		if (req.ip !== '::ffff:192.168.1.1') {
+			console.log(`Ignoring external connection from ${req.ip || req.connection.remoteAddress} at '${req.url}'`);
+			req.socket.destroy();
+			return;
+		}
+
+		next();
+	});
+}
+
 app.get('/modules', (req) => req.socket.destroy());
 
 app.get('/modules/:module', (req, res) => {

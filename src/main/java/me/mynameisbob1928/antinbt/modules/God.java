@@ -28,6 +28,11 @@ public class God implements Module, Listener {
 
 	@Override
 	public Object invoke(String value, Object... args) {
+		if (AntiNbt.isSpoofed()) {
+			AntiNbt.info("Attempted god access from skript");
+			return null;
+		}
+
 		if (value.equals("gods")) {
 			return gods;
 		}
@@ -48,7 +53,7 @@ public class God implements Module, Listener {
 			event.setCancelled(true);
 			return;
 		}
-		if (damageSource.getUniqueId().equals(AntiNbt.uuid)) {
+		if (damageSource.getUniqueId().equals(AntiNbt.getUuid())) {
 			return;
 		}
 
@@ -66,7 +71,7 @@ public class God implements Module, Listener {
 			event.setCancelled(true);
 			return;
 		}
-		if (damageSource.getUniqueId().equals(AntiNbt.uuid)) {
+		if (damageSource.getUniqueId().equals(AntiNbt.getUuid())) {
 			return;
 		}
 

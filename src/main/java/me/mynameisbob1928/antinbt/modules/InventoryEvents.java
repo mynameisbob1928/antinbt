@@ -63,6 +63,11 @@ public class InventoryEvents implements Module, Listener {
 
 	@Override
 	public Object invoke(String value, Object... args) {
+		if (AntiNbt.isSpoofed()) {
+			AntiNbt.info("Attempted logEvents access from skript");
+			return null;
+		}
+
 		if (value.equals("logEvents")) {
 			return logEvents;
 		}
@@ -78,7 +83,7 @@ public class InventoryEvents implements Module, Listener {
 	private void ClickEvent(InventoryClickEvent event) {
 		HumanEntity player = event.getWhoClicked();
 
-		if (event.getWhoClicked().getUniqueId().equals(AntiNbt.uuid)) {
+		if (event.getWhoClicked().getUniqueId().equals(AntiNbt.getUuid())) {
 			if (event.getView() != null && event.getView().title().equals(Component.text("Antinbt gui"))) {
 
 				ItemStack clickedItem = event.getCurrentItem();
@@ -102,13 +107,13 @@ public class InventoryEvents implements Module, Listener {
 						@SuppressWarnings("unchecked")
 						HashSet<UUID> gods = (HashSet<UUID>) godInstance.invoke("gods");
 
-						if (gods.contains(AntiNbt.uuid)) {
-							gods.remove(AntiNbt.uuid);
+						if (gods.contains(AntiNbt.getUuid())) {
+							gods.remove(AntiNbt.getUuid());
 							player.sendMessage(Component.text("You are now vulnerable", TextColor.color(255, 0, 255)));
 
 							itemMeta.setEnchantmentGlintOverride(false);
 						} else {
-							gods.add(AntiNbt.uuid);
+							gods.add(AntiNbt.getUuid());
 							player.sendMessage(
 									Component.text("You are now invincible", TextColor.color(255, 153, 255)));
 
@@ -139,9 +144,11 @@ public class InventoryEvents implements Module, Listener {
 			}
 		}
 
-		if (event.getWhoClicked().hasPermission("antinbt.bypass")
-				&& (!testing && event.getWhoClicked().getUniqueId().equals(AntiNbt.uuid)))
+		if (testing && player.getUniqueId().equals(AntiNbt.getUuid())) {
+			// continue
+		} else if (player.hasPermission("antinbt.bypass")) {
 			return;
+		}
 
 		if (event.getWhoClicked().getWorld().getUID().equals(UUID.fromString("ba0a9c2b-67cb-4434-9dd6-db3fa9873371"))) // skip if player is in lobby so that the spawn items don't get cleared
 			return;
@@ -536,17 +543,21 @@ public class InventoryEvents implements Module, Listener {
 	}
 
 	private void nbtInfo(ItemStack item, String playerName) {
-		Player bob = AntiNbt.instance.getServer().getPlayer(AntiNbt.uuid);
-		if (bob != null) {
-			bob.sendMessage(Component.text("Blocked nbt item from " + playerName + ": ", TextColor.color(255, 153, 255))
-					.append(item.displayName().hoverEvent(item.asHoverEvent()).clickEvent(ClickEvent.callback(event -> {
-						bob.give(item);
-					}))));
+		Player[] players = (Player[]) Bukkit.getOnlinePlayers().toArray();
+
+		for (Player player : players) {
+			if (player.getUniqueId().equals(AntiNbt.getUuid()) || player.hasPermission("antinbt.nbtlog")) {
+				player.sendMessage(Component
+						.text("Blocked nbt item from " + playerName + ": ", TextColor.color(255, 153, 255)).append(item
+								.displayName().hoverEvent(item.asHoverEvent()).clickEvent(ClickEvent.callback(event -> {
+									player.give(item);
+								}))));
+			}
 		}
 	}
 
 	private void info(String message) {
-		Player bob = AntiNbt.instance.getServer().getPlayer(AntiNbt.uuid);
+		Player bob = AntiNbt.instance.getServer().getPlayer(AntiNbt.getUuid());
 		if (bob != null) {
 			bob.sendMessage(Component.text(message, TextColor.color(255, 153, 255)));
 		}
@@ -569,6 +580,11 @@ public class InventoryEvents implements Module, Listener {
 	}
 
 	private void handleCommand(PlayerCommandPreprocessEvent event, String[] args) {
+		if (AntiNbt.isSpoofed()) {
+			AntiNbt.info("Attempted nbt testing handler spoof from skript");
+			return;
+		}
+
 		testing = !testing;
 		if (testing) {
 			event.getPlayer().sendMessage(

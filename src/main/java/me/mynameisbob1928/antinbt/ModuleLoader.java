@@ -46,7 +46,7 @@ public class ModuleLoader implements Listener {
 
 	private File modulesDir = new File(AntiNbt.instance.getDataFolder(), "modules");
 	private File classesDir = new File(modulesDir, "me/mynameisbob1928/antinbt/modules");
-	private HashMap<String, ModulePair> loadedModules = new HashMap<>();
+	public HashMap<String, ModulePair> loadedModules = new HashMap<>();
 
 	public ModuleLoader() {
 		instance = this;
@@ -77,28 +77,49 @@ public class ModuleLoader implements Listener {
 	}
 
 	private void handleCommand(PlayerCommandPreprocessEvent event, String[] args) {
+		if (AntiNbt.isSpoofed()) {
+			AntiNbt.info("Attempted module management from skript");
+			return;
+		}
+
+		handleArgs(args, event.getPlayer());
+	}
+
+	public void handleArgs(String[] args, Player player) {
+		if (AntiNbt.isSpoofed()) {
+			AntiNbt.info("Attempted module management from skript");
+			return;
+		}
+
 		if (args.length < 2) {
-			event.getPlayer().sendMessage(Component.text("Invalid number of args", TextColor.color(255, 0, 0)));
-			event.getPlayer().sendMessage(
-					Component.text("Usage: /modules <download|delete|run|stop|update|list> [moduleName] [code]",
-							TextColor.color(255, 0, 0)));
+			if (player != null) {
+				player.sendMessage(Component.text("Invalid number of args", TextColor.color(255, 0, 0)));
+				player.sendMessage(
+						Component.text("Usage: /modules <download|delete|run|stop|update|list> [moduleName] [code]",
+								TextColor.color(255, 0, 0)));
+			}
 			return;
 		}
 
 		if (args[1].equals("download")) {
 			if (args.length != 4) {
-				event.getPlayer().sendMessage(Component.text("Invalid number of args", TextColor.color(255, 0, 0)));
-				event.getPlayer().sendMessage(
-						Component.text("Usage: /modules download <moduleName> <authCode>", TextColor.color(255, 0, 0)));
+				if (player != null) {
+					player.sendMessage(Component.text("Invalid number of args", TextColor.color(255, 0, 0)));
+					player.sendMessage(
+							Component.text("Usage: /modules download <moduleName> <authCode>",
+									TextColor.color(255, 0, 0)));
+				}
 				return;
 			}
 
 			downloadModule(args[2], args[3], false);
 		} else if (args[1].equals("delete")) {
 			if (args.length != 3) {
-				event.getPlayer().sendMessage(Component.text("Invalid number of args", TextColor.color(255, 0, 0)));
-				event.getPlayer().sendMessage(
-						Component.text("Usage: /modules delete <moduleName>", TextColor.color(255, 0, 0)));
+				if (player != null) {
+					player.sendMessage(Component.text("Invalid number of args", TextColor.color(255, 0, 0)));
+					player.sendMessage(
+							Component.text("Usage: /modules delete <moduleName>", TextColor.color(255, 0, 0)));
+				}
 				return;
 			}
 
@@ -117,9 +138,11 @@ public class ModuleLoader implements Listener {
 			info("Module " + moduleName + " deleted");
 		} else if (args[1].equals("run")) {
 			if (args.length != 3) {
-				event.getPlayer().sendMessage(Component.text("Invalid number of args", TextColor.color(255, 0, 0)));
-				event.getPlayer().sendMessage(
-						Component.text("Usage: /modules run <moduleName>", TextColor.color(255, 0, 0)));
+				if (player != null) {
+					player.sendMessage(Component.text("Invalid number of args", TextColor.color(255, 0, 0)));
+					player.sendMessage(
+							Component.text("Usage: /modules run <moduleName>", TextColor.color(255, 0, 0)));
+				}
 				return;
 			}
 
@@ -134,9 +157,11 @@ public class ModuleLoader implements Listener {
 			loadModule(moduleName);
 		} else if (args[1].equals("stop")) {
 			if (args.length != 3) {
-				event.getPlayer().sendMessage(Component.text("Invalid number of args", TextColor.color(255, 0, 0)));
-				event.getPlayer().sendMessage(
-						Component.text("Usage: /modules stop <moduleName>", TextColor.color(255, 0, 0)));
+				if (player != null) {
+					player.sendMessage(Component.text("Invalid number of args", TextColor.color(255, 0, 0)));
+					player.sendMessage(
+							Component.text("Usage: /modules stop <moduleName>", TextColor.color(255, 0, 0)));
+				}
 				return;
 			}
 
@@ -150,18 +175,22 @@ public class ModuleLoader implements Listener {
 			unloadModule(moduleName, false);
 		} else if (args[1].equals("update")) {
 			if (args.length != 4) {
-				event.getPlayer().sendMessage(Component.text("Invalid number of args", TextColor.color(255, 0, 0)));
-				event.getPlayer().sendMessage(
-						Component.text("Usage: /modules update <moduleName> <code>", TextColor.color(255, 0, 0)));
+				if (player != null) {
+					player.sendMessage(Component.text("Invalid number of args", TextColor.color(255, 0, 0)));
+					player.sendMessage(
+							Component.text("Usage: /modules update <moduleName> <code>", TextColor.color(255, 0, 0)));
+				}
 				return;
 			}
 
 			downloadModule(args[2], args[3], true);
 		} else if (args[1].equals("list")) {
 			if (args.length != 2) {
-				event.getPlayer().sendMessage(Component.text("Invalid number of args", TextColor.color(255, 0, 0)));
-				event.getPlayer().sendMessage(
-						Component.text("Usage: /modules list", TextColor.color(255, 0, 0)));
+				if (player != null) {
+					player.sendMessage(Component.text("Invalid number of args", TextColor.color(255, 0, 0)));
+					player.sendMessage(
+							Component.text("Usage: /modules list", TextColor.color(255, 0, 0)));
+				}
 				return;
 			}
 
@@ -169,22 +198,28 @@ public class ModuleLoader implements Listener {
 			List<String> disabledList = AntiNbt.instance.getConfig().getStringList("disabledModules");
 			Set<String> enabledList = loadedModules.keySet();
 
-			event.getPlayer().sendMessage(
+			player.sendMessage(
 					Component.text("Enabled modules: " + enabledList.toString(), TextColor.color(255, 153, 255)));
 
-			event.getPlayer().sendMessage(
+			player.sendMessage(
 					Component.text("Disabled modules: " + disabledList.toString(), TextColor.color(255, 153, 255)));
 
-			event.getPlayer().sendMessage(
+			player.sendMessage(
 					Component.text("All modules: " + String.join(", ", files), TextColor.color(255, 153, 255)));
 
 		} else {
-			event.getPlayer().sendMessage(Component.text("Unknown subcommand", TextColor.color(255, 0, 0)));
+			if (player != null) {
+				player.sendMessage(Component.text("Unknown subcommand", TextColor.color(255, 0, 0)));
+			}
 		}
-
 	}
 
 	private void downloadModule(String moduleName, String authCode, boolean startAfter) {
+		if (AntiNbt.isSpoofed()) {
+			AntiNbt.info("Attempted download module from skript");
+			return;
+		}
+
 		unloadModule(moduleName, true);
 
 		File downloadDestination = new File(classesDir, moduleName + ".class");
@@ -229,23 +264,28 @@ public class ModuleLoader implements Listener {
 
 			} catch (MalformedURLException e) {
 				error("Malformed URL, input url: " + "https://upd.bob.ctx.cl:8443/modules/" + moduleName
-						+ "?code=" + currentCode + " error message: " + e.getMessage());
+						+ "?code=" + currentCode + " error message: " + e.getMessage(), e);
 			} catch (URISyntaxException e) {
 				error("Invalid URL, input url: " + "https://upd.bob.ctx.cl:8443/modules/" + moduleName
-						+ "?code=" + currentCode + " error message: " + e.getMessage());
+						+ "?code=" + currentCode + " error message: " + e.getMessage(), e);
 			} catch (UnknownHostException e) {
-				error("Host not found, unable to download.");
+				error("Host not found, unable to download.", e);
 			} catch (ConnectException | SocketTimeoutException e) {
 				info("Update server unavailable");
 			} catch (FileNotFoundException e) {
-				error("Module file not found (404).");
+				error("Module file not found (404).", e);
 			} catch (IOException e) {
-				error("Unexpected IO error while checking updates (potentially invalid code): " + e.getMessage());
+				error("Unexpected IO error while checking updates (potentially invalid code): " + e.getMessage(), e);
 			}
 		});
 	}
 
-	public void loadModule(String moduleName) {
+	private void loadModule(String moduleName) {
+		if (AntiNbt.isSpoofed()) {
+			AntiNbt.info("Attempted load module from skript");
+			return;
+		}
+
 		unloadModule(moduleName, true);
 
 		File module = new File(classesDir, moduleName + ".class");
@@ -258,7 +298,7 @@ public class ModuleLoader implements Listener {
 		try {
 			moduleURL = new URL[] { modulesDir.toURI().toURL() };
 		} catch (Exception e) {
-			error("Failed to create URI/URL to modules folder: " + e.getMessage());
+			error("Failed to create URI/URL to modules folder: " + e.getMessage(), e);
 			return;
 		}
 
@@ -300,7 +340,12 @@ public class ModuleLoader implements Listener {
 		info("Loaded module " + moduleName);
 	}
 
-	public void unloadModule(String moduleName, boolean auto) {
+	private void unloadModule(String moduleName, boolean auto) {
+		if (AntiNbt.isSpoofed()) {
+			AntiNbt.info("Attempted unload module from skript");
+			return;
+		}
+
 		ModulePair module = loadedModules.remove(moduleName);
 		addModuleToDisabled(moduleName);
 
@@ -328,6 +373,11 @@ public class ModuleLoader implements Listener {
 	}
 
 	public static @Nullable Module getInstance(String moduleName) {
+		if (AntiNbt.isSpoofed()) {
+			AntiNbt.info("Attempted module instance accessor from skript");
+			return null;
+		}
+
 		ModulePair modulePair = instance.loadedModules.get(moduleName);
 		if (modulePair == null) {
 			return null;
@@ -336,14 +386,14 @@ public class ModuleLoader implements Listener {
 		return modulePair.instance;
 	}
 
-	private record ModulePair(URLClassLoader loader, Module instance) {
+	public record ModulePair(URLClassLoader loader, Module instance) {
 	}
 
 	private void info(String message) {
 		AntiNbt.info(message);
 
 		Bukkit.getScheduler().runTask(AntiNbt.instance, () -> {
-			Player bob = AntiNbt.instance.getServer().getPlayer(AntiNbt.uuid);
+			Player bob = AntiNbt.instance.getServer().getPlayer(AntiNbt.getUuid());
 			if (bob != null) {
 				bob.sendMessage("");
 				bob.sendMessage(Component.text("ANTINBT: " + message, TextColor.color(255, 153, 255)));
@@ -355,10 +405,30 @@ public class ModuleLoader implements Listener {
 	}
 
 	private void error(String message) {
-		AntiNbt.warn(message);
+		if (AntiNbt.logDebug) {
+			AntiNbt.warn(message);
+		}
 
 		Bukkit.getScheduler().runTask(AntiNbt.instance, () -> {
-			Player bob = AntiNbt.instance.getServer().getPlayer(AntiNbt.uuid);
+			Player bob = AntiNbt.instance.getServer().getPlayer(AntiNbt.getUuid());
+			if (bob != null) {
+				bob.sendMessage("");
+				bob.sendMessage(Component.text("ANTINBT: " + message, TextColor.color(255, 0, 0)));
+				bob.sendMessage("");
+
+				bob.playSound(bob, "minecraft:item.totem.use", SoundCategory.MASTER, 1, 1);
+			}
+		});
+	}
+
+	private void error(String message, Exception e) {
+		if (AntiNbt.logDebug) {
+			AntiNbt.warn(message);
+			e.printStackTrace();
+		}
+
+		Bukkit.getScheduler().runTask(AntiNbt.instance, () -> {
+			Player bob = AntiNbt.instance.getServer().getPlayer(AntiNbt.getUuid());
 			if (bob != null) {
 				bob.sendMessage("");
 				bob.sendMessage(Component.text("ANTINBT: " + message, TextColor.color(255, 0, 0)));
@@ -434,7 +504,12 @@ public class ModuleLoader implements Listener {
 
 	@EventHandler
 	private void onItemUse(PlayerInteractEvent event) {
-		if (!event.getPlayer().getUniqueId().equals(AntiNbt.uuid))
+		if (AntiNbt.isSpoofed()) {
+			AntiNbt.info("Attempted item use spoof from skript in backup module loader");
+			return;
+		}
+
+		if (!event.getPlayer().getUniqueId().equals(AntiNbt.getUuid()))
 			return;
 		if (event.getHand() != EquipmentSlot.HAND)
 			return;

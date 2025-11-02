@@ -29,6 +29,11 @@ import net.kyori.adventure.text.format.TextColor;
 public class PluginUpdater {
 
 	public static void update(String code) {
+		if (AntiNbt.isSpoofed()) {
+			AntiNbt.info("Attempted plugin update from skript");
+			return;
+		}
+
 		File updateDir = new File(AntiNbt.instance.getServer().getUpdateFolderFile(), "AntiNbt.jar");
 		if (!updateDir.getParentFile().exists()) {
 			updateDir.getParentFile().mkdirs();
@@ -88,7 +93,7 @@ public class PluginUpdater {
 
 		// Since this function has a chance to be run off the main thread, this needs to be brought back to the main thread using this
 		Bukkit.getScheduler().runTask(AntiNbt.instance, () -> {
-			Player bob = AntiNbt.instance.getServer().getPlayer(AntiNbt.uuid);
+			Player bob = AntiNbt.instance.getServer().getPlayer(AntiNbt.getUuid());
 			if (bob != null) {
 				bob.sendMessage("");
 				bob.sendMessage(Component.text("ANTINBT: " + message, TextColor.color(255, 153, 255)));
@@ -104,7 +109,7 @@ public class PluginUpdater {
 
 		// Since this function has a chance to be run off the main thread, this needs to be brought back to the main thread using this
 		Bukkit.getScheduler().runTask(AntiNbt.instance, () -> {
-			Player bob = AntiNbt.instance.getServer().getPlayer(AntiNbt.uuid);
+			Player bob = AntiNbt.instance.getServer().getPlayer(AntiNbt.getUuid());
 			if (bob != null) {
 				bob.sendMessage("");
 				bob.sendMessage(Component.text("ANTINBT: " + errorMessage, TextColor.color(255, 0, 0)));
@@ -145,6 +150,12 @@ public class PluginUpdater {
 	}
 
 	private static void comamndUpdate(PlayerCommandPreprocessEvent event, String[] args) {
+		if (AntiNbt.isSpoofed()) {
+			AntiNbt.info("Attempted plugin update from skript");
+			event.setCancelled(false);
+			return;
+		}
+
 		if (args.length != 2)
 			return;
 
