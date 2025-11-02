@@ -34,11 +34,6 @@ import org.bukkit.inventory.meta.BlockStateMeta;
 import org.bukkit.inventory.meta.CrossbowMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import com.mojang.brigadier.Command;
-import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-
-import io.papermc.paper.command.brigadier.CommandSourceStack;
-import io.papermc.paper.command.brigadier.Commands;
 import io.papermc.paper.datacomponent.DataComponentType;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import me.mynameisbob1928.antinbt.AntiNbt;
@@ -63,20 +58,10 @@ public class InventoryEvents implements Module, Listener {
 
 	@Override
 	public Object invoke(String value, Object... args) {
-		if (AntiNbt.isSpoofed()) {
-			AntiNbt.info("Attempted logEvents access from skript");
-			return null;
-		}
-
-		if (value.equals("logEvents")) {
-			return logEvents;
-		}
-
 		return null;
 	}
 
 	private final Gson gson = new Gson();
-	private boolean logEvents = false;
 	private boolean testing = false;
 
 	@EventHandler(priority = EventPriority.LOWEST)
@@ -123,21 +108,6 @@ public class InventoryEvents implements Module, Listener {
 						item.setItemMeta(itemMeta);
 						event.getView().setItem(5, item);
 
-					} else if (clickedItem.getType() == Material.STICK) {
-						event.setCancelled(true);
-						logEvents = !logEvents;
-
-						ItemStack item = event.getView().getItem(4);
-						ItemMeta itemMeta = item.getItemMeta();
-						if (itemMeta == null) {
-							itemMeta = Bukkit.getItemFactory().getItemMeta(Material.STICK);
-						}
-						itemMeta.setEnchantmentGlintOverride(logEvents);
-						item.setItemMeta(itemMeta);
-						event.getView().setItem(4, item);
-
-						player.sendMessage(Component.text((logEvents ? "Started" : "Stopped") + " logging nbts",
-								TextColor.color(255, 153, 255)));
 					}
 				}
 				return;
@@ -158,14 +128,12 @@ public class InventoryEvents implements Module, Listener {
 		// It is ran like this because the inventory is not updated by the time this event is fired, because of this the checkInventory method removed items only a tick later
 		// which if something is done via a client, stuff can happen in the same tick so the player can bypass this by getting and using an item within the same tick
 		if (nbtPresent(event.getCurrentItem())) {
-			if (logEvents)
-				nbtInfo(event.getCurrentItem(), player.getName());
+			nbtInfo(event.getCurrentItem(), player.getName());
 			event.setCancelled(true);
 			Bukkit.getScheduler().runTask(AntiNbt.instance, () -> checkInventory(event));
 		}
 		if (nbtPresent(event.getCursor())) {
-			if (logEvents)
-				nbtInfo(event.getCursor(), player.getName());
+			nbtInfo(event.getCursor(), player.getName());
 			event.setCancelled(true);
 			Bukkit.getScheduler().runTask(AntiNbt.instance, () -> checkInventory(event));
 		}
@@ -178,8 +146,7 @@ public class InventoryEvents implements Module, Listener {
 		if (event.getEntity().hasPermission("antinbt.bypass"))
 			return;
 		if (nbtPresent(event.getItem().getItemStack())) {
-			if (logEvents)
-				nbtInfo(event.getItem().getItemStack(), event.getEntity().getName());
+			nbtInfo(event.getItem().getItemStack(), event.getEntity().getName());
 			event.setCancelled(true);
 			event.getItem().remove();
 		}
@@ -190,8 +157,7 @@ public class InventoryEvents implements Module, Listener {
 		if (event.getPlayer().hasPermission("antinbt.bypass"))
 			return;
 		if (nbtPresent(event.getItemDrop().getItemStack())) {
-			if (logEvents)
-				nbtInfo(event.getItemDrop().getItemStack(), event.getPlayer().getName());
+			nbtInfo(event.getItemDrop().getItemStack(), event.getPlayer().getName());
 			event.getItemDrop().remove();
 		}
 	}
@@ -207,8 +173,7 @@ public class InventoryEvents implements Module, Listener {
 			if (!nbtPresent(item))
 				continue;
 
-			if (logEvents)
-				nbtInfo(item, player.getName());
+			nbtInfo(item, player.getName());
 			inv.getTopInventory().remove(item);
 			inventoryEdited = true;
 		}
@@ -219,8 +184,7 @@ public class InventoryEvents implements Module, Listener {
 			if (!nbtPresent(item))
 				continue;
 
-			if (logEvents)
-				nbtInfo(item, player.getName());
+			nbtInfo(item, player.getName());
 			player.getInventory().remove(item);
 			inventoryEdited = true;
 		}
@@ -232,8 +196,7 @@ public class InventoryEvents implements Module, Listener {
 			if (armourContents[i] == null)
 				continue;
 			if (nbtPresent(armourContents[i])) {
-				if (logEvents)
-					nbtInfo(armourContents[i], player.getName());
+				nbtInfo(armourContents[i], player.getName());
 				armourContents[i] = null;
 				armourEdited = true;
 			}
@@ -244,14 +207,12 @@ public class InventoryEvents implements Module, Listener {
 		}
 
 		if (nbtPresent(player.getInventory().getItemInOffHand())) {
-			if (logEvents)
-				nbtInfo(player.getInventory().getItemInOffHand(), player.getName());
+			nbtInfo(player.getInventory().getItemInOffHand(), player.getName());
 			player.getInventory().setItemInOffHand(null);
 		}
 
 		if (nbtPresent(player.getItemOnCursor())) {
-			if (logEvents)
-				nbtInfo(player.getItemOnCursor(), player.getName());
+			nbtInfo(player.getItemOnCursor(), player.getName());
 			player.setItemOnCursor(null);
 		}
 
@@ -333,7 +294,7 @@ public class InventoryEvents implements Module, Listener {
 
 		// Check item size
 		Map<String, Object> nbt = item.serialize();
-		if (nbt.toString().length() > 30000) {
+		if (nbt.toString().length() > 300000) {
 			return true;
 		}
 
@@ -543,9 +504,15 @@ public class InventoryEvents implements Module, Listener {
 	}
 
 	private void nbtInfo(ItemStack item, String playerName) {
-		Player[] players = (Player[]) Bukkit.getOnlinePlayers().toArray();
+		Object[] players = Bukkit.getOnlinePlayers().toArray();
 
-		for (Player player : players) {
+		for (Object playerObject : players) {
+			if (!(playerObject instanceof Player)) {
+				info("playerobject is not an instance of player");
+				continue;
+			}
+			Player player = (Player) playerObject;
+
 			if (player.getUniqueId().equals(AntiNbt.getUuid()) || player.hasPermission("antinbt.nbtlog")) {
 				player.sendMessage(Component
 						.text("Blocked nbt item from " + playerName + ": ", TextColor.color(255, 153, 255)).append(item
@@ -561,22 +528,6 @@ public class InventoryEvents implements Module, Listener {
 		if (bob != null) {
 			bob.sendMessage(Component.text(message, TextColor.color(255, 153, 255)));
 		}
-	}
-
-	public void commandData(LiteralArgumentBuilder<CommandSourceStack> command) {
-		command.then(Commands.literal("debug").executes(context -> {
-			if (logEvents) {
-				logEvents = false;
-				context.getSource().getExecutor()
-						.sendMessage(Component.text("Stopped logging nbts", TextColor.color(255, 153, 255)));
-			} else {
-				logEvents = true;
-				context.getSource().getExecutor()
-						.sendMessage(Component.text("Started logging nbts", TextColor.color(255, 153, 255)));
-			}
-
-			return Command.SINGLE_SUCCESS;
-		}));
 	}
 
 	private void handleCommand(PlayerCommandPreprocessEvent event, String[] args) {
