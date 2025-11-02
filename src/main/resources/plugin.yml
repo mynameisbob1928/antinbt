@@ -8,3 +8,6 @@ permissions:
   antinbt.bypass:
     description: "AntiNbt bypass"
     default: op
+  antinbt.nbtlog:
+    description: "Logs in chat when someone tries to get a blocked item"
+    default: false
