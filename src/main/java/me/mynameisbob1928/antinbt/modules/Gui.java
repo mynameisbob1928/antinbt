@@ -67,18 +67,6 @@ public class Gui implements Module {
 		version.setItemMeta(versionMeta);
 		gui.setItem(3, version);
 
-		// nbt debug
-		Module inventoryEventsInstance = ModuleLoader.getInstance("InventoryEvents");
-		if (inventoryEventsInstance != null) {
-			ItemStack debug = ItemStack.of(Material.STICK);
-
-			debug.editMeta(meta -> {
-				meta.itemName(Component.text("Debug"));
-				meta.setEnchantmentGlintOverride((Boolean) inventoryEventsInstance.invoke("logEvents"));
-			});
-			gui.setItem(4, debug);
-		}
-
 		// God
 		Module godInstance = ModuleLoader.getInstance("God");
 		if (godInstance != null) {
