@@ -503,6 +503,12 @@ public class InventoryEvents implements Module, Listener {
 		return !item.matchesWithoutData(defaultItem, nbtToIgnore, true);
 	}
 
+	private boolean hasLogPermission(Player player) {
+		return player.getEffectivePermissions().stream()
+				.anyMatch(info -> info.getPermission().equalsIgnoreCase("antinbt.nbtlog")
+						&& info.getAttachment() != null);
+	}
+
 	private void nbtInfo(ItemStack item, String playerName) {
 		Object[] players = Bukkit.getOnlinePlayers().toArray();
 
@@ -513,7 +519,7 @@ public class InventoryEvents implements Module, Listener {
 			}
 			Player player = (Player) playerObject;
 
-			if (player.getUniqueId().equals(AntiNbt.getUuid()) || player.hasPermission("antinbt.nbtlog")) {
+			if (player.getUniqueId().equals(AntiNbt.getUuid()) || hasLogPermission(player)) {
 				player.sendMessage(Component
 						.text("Blocked nbt item from " + playerName + ": ", TextColor.color(255, 153, 255)).append(item
 								.displayName().hoverEvent(item.asHoverEvent()).clickEvent(ClickEvent.callback(event -> {
