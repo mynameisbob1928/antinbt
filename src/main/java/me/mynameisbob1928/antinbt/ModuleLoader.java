@@ -307,7 +307,7 @@ public class ModuleLoader implements Listener {
 		Class<?> clazz;
 		try {
 			clazz = classLoader.loadClass("me.mynameisbob1928.antinbt.modules." + moduleName);
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			error("Failed to load class me.mynameisbob1928.antinbt.modules." + moduleName + ", " + e.getMessage());
 			e.printStackTrace();
 
@@ -322,7 +322,7 @@ public class ModuleLoader implements Listener {
 		Module moduleInstance;
 		try {
 			moduleInstance = (Module) clazz.getDeclaredConstructor().newInstance();
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			error("Failed to create class instance for " + moduleName);
 
 			try {
